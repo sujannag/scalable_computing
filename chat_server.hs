@@ -1,6 +1,7 @@
 module Main where
 
 import Network.Socket
+import System.IO
 
 main :: IO()
 main = do
@@ -19,6 +20,7 @@ main = do
 	-- Doesnt return, keep on listening iteratively.
 	mainLoop sock
 
+-- mainLoop function
 mainLoop :: Socket -> IO()
 mainLoop sock = do		-- takes sock as an argument
 	-- accept a socket connection
@@ -30,12 +32,13 @@ mainLoop sock = do		-- takes sock as an argument
 	-- repeat
 	mainLoop sock
 
-
+-- runConn function
 runConn :: (Socket, SockAddr) -> IO ()
+
+-- use system IOs instead of send and recv
 runConn (sock, _) = do
+	hdl <- socketToHandle sock ReadWriteMode
+	hSetBuffering hdl NoBuffering
+	hPutStrLn hdl "Hello!"
+	hClose hdl
 
-	-- sends a message to the client
-	send sock "Hello!\n"
-
-	-- closes the socket connection
-	close sock
