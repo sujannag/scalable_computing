@@ -43,6 +43,7 @@ mainLoop :: Socket -> Chan Msg -> Int -> IO()
 mainLoop sock chan msgNum = do		-- takes sock as an argument
 	-- accept a socket connection
 	conn <- accept sock
+	putStrLn ("Connection from client accepted \n")
 
 	-- Server logic. It also closes the socket
 	forkIO (runConn conn chan msgNum)	-- each connection starts in its own thread
