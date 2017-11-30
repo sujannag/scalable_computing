@@ -1,3 +1,3 @@
 #!/bin/bash
 
-stack exec chat-exe
+stack exec chat-exe $1

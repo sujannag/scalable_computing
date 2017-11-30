@@ -2,7 +2,6 @@
 Includes projects related to scalable computing
 
 # chat
-
 Link:
 https://docs.haskellstack.org/en/stable/README/
 

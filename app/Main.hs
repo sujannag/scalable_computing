@@ -1,73 +1,115 @@
--- https://wiki.haskell.org/Implement_a_chat_server
-
 module Main where
- 
+
 import Network.Socket
 import System.IO
-import Control.Exception
+import System.Environment          -- to include getArgs
 import Control.Concurrent
-import Control.Monad (when)
-import Control.Monad.Fix (fix)
- 
-main :: IO ()
--- 'do' chains a whole lot of commands together
+import Control.Concurrent.MVar
+import Control.Concurrent.ParallelIO.Local
+import Data.List
+import qualified Data.HashTable.IO as H
+
+import Utils
+
+main :: IO()
 main = do
-	
-	-- Create a socket
-  sock <- socket AF_INET Stream 0
-  	
-  	-- Make socket reusable
-  setSocketOption sock ReuseAddr 1
 
-  -- bind the socket, listen on port 4242
-  bind sock (SockAddrInet 4242 iNADDR_ANY)
+    -- take the port number from the user
+    [userPort] <- getArgs
 
-  -- set a max of 2 queued connections
-  listen sock 2
-  
-  chan <- newChan
-  _ <- forkIO $ fix $ \loop -> do
-    (_, _) <- readChan chan
-    loop
-  mainLoop sock chan 0
- 
-type Msg = (Int, String)
- 
-mainLoop :: Socket -> Chan Msg -> Int -> IO ()
-mainLoop sock chan msgNum = do
-  conn <- accept sock
-  forkIO (runConn conn chan msgNum)
-  mainLoop sock chan $! msgNum + 1
- 
-runConn :: (Socket, SockAddr) -> Chan Msg -> Int -> IO ()
-runConn (sock, _) chan msgNum = do
-    let broadcast msg = writeChan chan (msgNum, msg)
-    hdl <- socketToHandle sock ReadWriteMode
-    hSetBuffering hdl LineBuffering
- 
-    hPutStrLn hdl "Hi, what's your name?"
-    name <- fmap init (hGetLine hdl)
-    broadcast ("--> " ++ name ++ " entered chat.")
-    hPutStrLn hdl ("Welcome, " ++ name ++ "!")
- 
-    commLine <- dupChan chan
- 
-    -- fork off a thread for reading from the duplicated channel
-    reader <- forkIO $ fix $ \loop -> do
-        (nextNum, line) <- readChan commLine
-        when (msgNum /= nextNum) $ hPutStrLn hdl line
-        loop
- 
-    handle (\(SomeException _) -> return ()) $ fix $ \loop -> do
-        line <- fmap init (hGetLine hdl)
-        case line of
-             -- If an exception is caught, send a message and break the loop
-             "quit" -> hPutStrLn hdl "Bye!"
-             -- else, continue looping.
-             _      -> broadcast (name ++ ": " ++ line) >> loop
- 
-    killThread reader                      -- kill after the loop ends
-    broadcast ("<-- " ++ name ++ " left.") -- make a final broadcast
-    hClose hdl
+    -- create a scoket
+    sock <- socket AF_INET Stream 0
+
+    -- make socket reusable
+    setSocketOption sock ReuseAddr 1
+
+    -- Listen on the TCP port given by the user
+    bind sock (SockAddrInet (read userPort) iNADDR_ANY)
+
+    let nThreads = 5
+    listen sock (nThreads*2)
+
+    -- make a new channel
+    chan <- newChan
+
+    -- Use a hashtable to maintain copy of the clients
+    htSI             <- H.new :: IO (HashTable String Int)
+    htIC             <- H.new :: IO (HashTable Int ChatRoom)
+    htClients        <- H.new :: IO (HashTable Int Client)
+    htClientsNames   <- H.new :: IO (HashTable String Int)
+
+    let nCR = 0
+
+    chatRooms <- newMVar (ChatRooms {chatRoomFromId = htIC,
+                                     chatRoomIdFromName = htSI,
+				     numberOfChatRooms = nCR})
+
+    clients <- newMVar (Clients {lastClientId = 0, 
+                                 theClients = htClients,
+				 clientNames = htClientsNames})
+
+    -- create the threads
+    withPool nThreads $ \pool -> parallel_ pool(replicate nThreads (server sock userPort chan clients chatRooms))
+
+    -- end of program
+    cLog "End of server"
+
+
+{--
+
+--}
+server :: Socket -> String -> Chan Bool -> MVar Clients -> MVar ChatRooms -> IO()
+server sock userPort chan clients chatRooms = do
+
+    cLog "In server thread, waiting for a connection"
+    
+    -- accpet the socket. What if the connection is not accepted
+    conn <- accept sock
+    cLog "Connection accepted!!"
+    
+    -- run the client logic
+    runClient conn sock userPort chan clients chatRooms
+
+    -- repeat
+    server sock userPort chan clients chatRooms
+
+{--
+
+--}
+runClient :: (Socket, SockAddr) -> Socket -> String -> Chan Bool -> MVar Clients -> MVar ChatRooms -> IO()
+runClient (sock, addr) originalSocket userPort chan clients chatRooms = do
+    
+    cLog "In runClient!!"
+    
+    --
+    handler <- socketToHandle sock ReadWriteMode
+
+    --
+    hSetBuffering handler LineBuffering
+
+    --
+    loopClient handler originalSocket userPort chan clients chatRooms []
+
+    --
+    hClose handler
+    cLog "Client Disconnected "
+
+
+{--
+
+--}
+loopClient :: Handle -> Socket -> String -> Chan Bool -> MVar Clients -> MVar ChatRooms -> [Int] -> IO()
+loopClient handler originalSocket userPort chan clients chatRooms joinIds = do
+
+    cLog "In loopClient"
+    -- wait for an input from the client
+    
+
+    -- what if the client times out?
+
+    -- if all is well, handle the inputs
+
+    
+
 
 
