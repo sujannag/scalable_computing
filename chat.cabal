@@ -15,15 +15,15 @@ cabal-version:       >=1.10
 
 library
   hs-source-dirs:      src
-  exposed-modules:     Lib, Utils
-  build-depends:       base >= 4.7 && < 5, network, hashtables
+  exposed-modules:     Lib, Utils, Client
+  build-depends:       base >= 4.7 && < 5, network, hashtables, split, directory, iproute, MissingH
   default-language:    Haskell2010
 
 executable chat-exe
   hs-source-dirs:      app
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
-  build-depends:       base, network, containers, parallel-io, concurrency, stm, async, hashtables
+  build-depends:       base, network, containers, split,parallel-io, concurrency, stm, async, hashtables
                      , chat
   default-language:    Haskell2010
 
