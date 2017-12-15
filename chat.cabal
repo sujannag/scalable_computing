@@ -5,9 +5,9 @@ version:             0.1.0.0
 homepage:            https://github.com/githubuser/chat#readme
 license:             BSD3
 license-file:        LICENSE
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2017 Author name here
+author:              Author name Sujan Kumar Nag
+maintainer:          nags@tcd.ie
+copyright:           2017 Author name Sujan Kumar Nag
 category:            Web
 build-type:          Simple
 extra-source-files:  README.md
@@ -38,4 +38,4 @@ test-suite chat-test
 
 source-repository head
   type:     git
-  location: https://github.com/githubuser/chat
+  location: https://github.com/sujannag/scalable_computing.git
